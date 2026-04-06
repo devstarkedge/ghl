@@ -353,6 +353,11 @@
     const FORM_ID     = 'YCGE0z52j6JUbz1jHDvS';
     const LOCATION_ID = 'DVI2D5jmAUwFZZHQEedb';
 
+    // Generate a simple sessionId
+    const sessionId = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+
     document.getElementById('contactForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
@@ -378,35 +383,45 @@
       btn.disabled = true;
       errorMsg.classList.remove('show');
 
-      const payload = {
-        formId:     FORM_ID,
-        locationId: LOCATION_ID,
-        formData: {
+      try {
+        const captchaToken = await new Promise((resolve, reject) => {
+          grecaptcha.enterprise.ready(() => {
+            grecaptcha.enterprise.execute('6LfaOKksAAAAAOYICmKMSIYJBasYgBmxVWPqa0px', { action: 'LEADGEN_FORM_SUBMIT' })
+              .then(resolve).catch(reject);
+          });
+        });
+
+        const ghlPayload = {
           first_name,
           last_name,
           email,
           phone,
           terms_and_conditions: terms_and_conditions ? 'on' : '',
-        },
-      };
+          formId: FORM_ID,
+          location_id: LOCATION_ID,
+          sessionId: sessionId,
+          eventData: {
+            source: "direct",
+            referrer: document.referrer || "",
+            page: {
+              url: window.location.href,
+              title: document.title
+            },
+            timestamp: Date.now(),
+            domain: window.location.hostname,
+            version: "v3"
+          }
+        };
 
-      try {
-        const captchaToken = await new Promise((resolve, reject) => {
-          grecaptcha.enterprise.ready(() => {
-            grecaptcha.enterprise.execute('6LfaOKksAAAAAOYICmKMSIYJBasYgBmxVWPqa0px', { action: 'form_submission' })
-              .then(resolve).catch(reject);
-          });
-        });
-
-        payload.captchaV3 = captchaToken;
+        const formData = new FormData();
+        formData.append('formData', JSON.stringify(ghlPayload));
+        formData.append('formId', FORM_ID);
+        formData.append('locationId', LOCATION_ID);
+        formData.append('captchaV3', captchaToken);
 
         const res = await fetch('https://backend.leadconnectorhq.com/forms/submit', {
           method:  'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept':       'application/json'
-          },
-          body:    JSON.stringify(payload),
+          body:    formData,
         });
 
         if (res.ok) {
@@ -418,6 +433,7 @@
           showError(data.message || data.error || 'Submission failed. Please try again.');
         }
       } catch (err) {
+        console.error('Submission catch:', err);
         showError('Network error. Please check your connection and try again.');
       } finally {
         btn.classList.remove('loading');
