@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Contact Us</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://www.google.com/recaptcha/api.js?render=6LfaOKksAAAAAOYICmKMSIYJBasYgBmxVWPqa0px"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -390,6 +391,15 @@
       };
 
       try {
+        const captchaToken = await new Promise((resolve, reject) => {
+          grecaptcha.ready(() => {
+            grecaptcha.execute('6LfaOKksAAAAAOYICmKMSIYJBasYgBmxVWPqa0px', { action: 'submit' })
+              .then(resolve).catch(reject);
+          });
+        });
+
+        payload.formData.captchaV3 = captchaToken;
+
         const res = await fetch('https://backend.leadconnectorhq.com/forms/submit', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'version': '2021-07-28' },
