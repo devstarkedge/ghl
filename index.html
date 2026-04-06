@@ -393,7 +393,7 @@
       try {
         const captchaToken = await new Promise((resolve, reject) => {
           grecaptcha.enterprise.ready(() => {
-            grecaptcha.enterprise.execute('6LfaOKksAAAAAOYICmKMSIYJBasYgBmxVWPqa0px', { action: 'submit' })
+            grecaptcha.enterprise.execute('6LfaOKksAAAAAOYICmKMSIYJBasYgBmxVWPqa0px', { action: 'form_submission' })
               .then(resolve).catch(reject);
           });
         });
@@ -402,7 +402,10 @@
 
         const res = await fetch('https://backend.leadconnectorhq.com/forms/submit', {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'version': '2021-07-28' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept':       'application/json'
+          },
           body:    JSON.stringify(payload),
         });
 
@@ -411,7 +414,8 @@
           document.getElementById('successBox').classList.add('show');
         } else {
           const data = await res.json().catch(() => ({}));
-          showError(data.message || 'Submission failed. Please try again.');
+          console.error('Submission error:', data);
+          showError(data.message || data.error || 'Submission failed. Please try again.');
         }
       } catch (err) {
         showError('Network error. Please check your connection and try again.');
