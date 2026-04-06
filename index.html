@@ -398,7 +398,7 @@
           });
         });
 
-        payload.formData.captchaV3 = captchaToken;
+        payload.captchaV3 = captchaToken;
 
         const res = await fetch('https://backend.leadconnectorhq.com/forms/submit', {
           method:  'POST',
